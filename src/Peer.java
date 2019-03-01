@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -20,8 +21,11 @@ public class Peer implements PeerInterface{
 	private int product;
 	private int stock;
 	private int neighbors = 2;
-	private List<PeerInterface> neighborStubs;
+	private List<PeerInterface> neighborStubs = new ArrayList<PeerInterface>();
 
+	private void addNeighbor(PeerInterface stub) {
+		neighborStubs.add(stub);
+	}
 	public int getBuyer() {
 		return buyer;
 	}
@@ -67,7 +71,9 @@ public class Peer implements PeerInterface{
 			}
 			else {
 				if(productId == product) {
-					result.add(nodeId);
+					if(!result.contains(nodeId)) {
+						result.add(nodeId);
+					}
 					return result;
 				}
 				else {
@@ -85,7 +91,9 @@ public class Peer implements PeerInterface{
 				}
 			}
 			if(buyer == 0 && productId == product) {
-				result.add(nodeId);
+				if(!result.contains(nodeId)) {
+					result.add(nodeId);
+				}
 			}
 			return result;
 		}
@@ -110,8 +118,8 @@ public class Peer implements PeerInterface{
 	}
 
 	public static void main(String[] args) throws IOException {
-		// TODO Auto-generated method stub
 		int startStock = 5;
+		int hopcount = 2;
 		Peer peer = new Peer();
 		peer.setNodeId(Integer.parseInt(args[0]));
 		int myPortNumber = Integer.parseInt(args[2]);
@@ -125,7 +133,6 @@ public class Peer implements PeerInterface{
             e.printStackTrace();
         }
         int portNumber;
-        
 		int portNumber1 = Integer.parseInt(args[3]);
 		int portNumber2 = Integer.parseInt(args[4]);
 		int numNodes = Integer.parseInt(args[1]);
@@ -141,7 +148,8 @@ public class Peer implements PeerInterface{
          		}
          		Registry registry = LocateRegistry.getRegistry(portNumber);
 //				PeerInterface 
-				stubs.add((PeerInterface) registry.lookup("PeerInterface"));
+         		peer.addNeighbor((PeerInterface) registry.lookup("PeerInterface"));
+//				stubs.add((PeerInterface) registry.lookup("PeerInterface"));
 				numNeighbors++;
 			} catch (NotBoundException e) {
 //				e.printStackTrace();
@@ -150,54 +158,54 @@ public class Peer implements PeerInterface{
 			}
         }
         peer.decision();
-        if(peer.getBuyer() == 1){
-        	System.out.println("I am buyer");
+        if(peer.getBuyer() == 0) {
+        	peer.setProduct(peer.chooseProduct());
+        	System.out.println("Trying to sell " + peer.getProduct());
+        }
+        else{
+        	List<Integer> replies;
         	while(true) {
         		peer.setProduct(peer.chooseProduct());
-        		// code for buying
+        		System.out.println("Trying to buy " + peer.getProduct());
+        		boolean bought = false;
+        		while(bought == false) {
+        			replies = peer.lookup(peer.getProduct(), hopcount);
+	        		if(!replies.isEmpty()) {
+	        			int idx = peer.getRandomNumber(replies.size());
+	        			int chosenSellerId = replies.get(idx);
+	        			System.out.println("Buying from " + chosenSellerId);
+	        			bought = true;
+	        			// Buy from chosen seller
+	        		}
+        		}
+        		try {
+					TimeUnit.SECONDS.sleep(2);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
         	}
         }
-        else {
-        	System.out.println("I am seller");
-        	peer.setProduct(peer.chooseProduct());
-        	peer.setStock(startStock);
-        }
-        stubs.get(0).printMsg();
-        stubs.get(1).printMsg();
-// 		if(peer.getNodeId() == 1)
-// 		{
-// 			// ServerThread serverThread = new ServerThread(portNumber);
-// 			// serverThread.start();
-// 		}
-// 		else if(peer.getNodeId() < numNodes)
-// 		{
-// 			Socket peerSocket = new Socket("localhost", 8000);
-// //			PrintStream PS = new PrintStream(peerSocket.getOutputStream());
-// //			PS.println("connection made from node" + peer.getNodeId());
-// 			ServerThread serverThread2 = new ServerThread(portNumber);
-// 			serverThread2.start();
-			 
-// 		}
-// 		else if(peer.getNodeId() == numNodes)
-// 		{
-// 			Socket peerSocket1 = new Socket("localhost", 8000);
-// 			Socket peerSocket2 = new Socket("localhost", 8001);
-// 		}
-		
-//		System.out.println(peer.getNodeId());
-//		JSONArray a = (JSONArray) parser.parse(new FileReader("config.json"));
 
+	}
+	private int getRandomNumber(int max) {
+		Random rand = new Random();
+		return rand.nextInt(max);
 	}
 	private void decision() {
 		// TODO Auto-generated method stub
 		Random rand = new Random();
-		int select = rand.nextInt(2);
-		this.buyer = select;
+		buyer = rand.nextInt(2);
+		if(buyer == 0) {
+			System.out.println("I am a seller");
+		}
+		else {
+			System.out.println("I am a buyer");
+		}
 	}
 	private int chooseProduct() {
 		// TODO Auto-generated method stub
 		Random rand = new Random();
-		int select = rand.nextInt(3);
+		int select = rand.nextInt(1);
 		return select;
 	}
 
