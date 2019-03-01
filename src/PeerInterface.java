@@ -5,8 +5,9 @@ import java.text.*;
 import java.util.*;
 import java.net.*;
 
-public interface Peer_interface extends Remote{
+public interface PeerInterface extends Remote{
 	public void printMsg() throws RemoteException;
+	public List<Integer> lookup(int productId,int hopcount) throws RemoteException;
 	// public String deposit(String acc_no,double amt) throws RemoteException;
 	// public String withdraw(String acc_no,double amt) throws RemoteException;
 	// public String balance(String acc_no) throws RemoteException;

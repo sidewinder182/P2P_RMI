@@ -14,11 +14,13 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 
-public class Peer implements Peer_interface{
+public class Peer implements PeerInterface{
 	private int buyer;
 	private int nodeId;
 	private int product;
 	private int stock;
+	private int neighbors = 2;
+	private List<PeerInterface> neighborStubs;
 
 	public int getBuyer() {
 		return buyer;
@@ -55,16 +57,68 @@ public class Peer implements Peer_interface{
 	public void printMsg() {
 		System.out.println("Hello!");
 	}
+	
+	public List<Integer> lookup(int productId,int hopcount) {
+		List<Integer> result = new ArrayList<Integer>();
+		if(hopcount == 0) {
+			if(buyer == 1) {
+//				result.add(0);
+				return result;
+			}
+			else {
+				if(productId == product) {
+					result.add(nodeId);
+					return result;
+				}
+				else {
+//					result.add(0);
+					return result;
+				}
+			}
+		}
+		else {
+			for(int i = 0;i < neighbors;i++) {
+				try {
+					result.addAll(neighborStubs.get(i).lookup(productId,hopcount-1));
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
+			if(buyer == 0 && productId == product) {
+				result.add(nodeId);
+			}
+			return result;
+		}
+	}
+	
+	public boolean buy(int nodeId,int productId) {
+		if(this.buyer == 1) {
+			return false;
+		}
+		if(productId != product) {
+			return false;
+		}
+		if(this.stock > 0) {
+			this.stock -= 1;
+			System.out.println("Sold item " + Integer.toString(this.product) + " to node " + Integer.toString(nodeId));
+			return true;
+		}
+		return false;
+	}
+	private int reply() {
+		return nodeId;
+	}
 
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub
+		int startStock = 5;
 		Peer peer = new Peer();
 		peer.setNodeId(Integer.parseInt(args[0]));
 		int myPortNumber = Integer.parseInt(args[2]);
         try {
-            Peer_interface stub = (Peer_interface) UnicastRemoteObject.exportObject(peer, 0);
+            PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(peer, 0);
             Registry registry = LocateRegistry.createRegistry(myPortNumber);
-            registry.bind("Peer_interface", stub);
+            registry.bind("PeerInterface", stub);
             System.err.println("Server ready");
         } catch (Exception e) {
             System.err.println("Server exception: " + e.toString());
@@ -76,7 +130,7 @@ public class Peer implements Peer_interface{
 		int portNumber2 = Integer.parseInt(args[4]);
 		int numNodes = Integer.parseInt(args[1]);
 		int numNeighbors = 0;
-		List<Peer_interface> stubs = new ArrayList<Peer_interface>();
+		List<PeerInterface> stubs = new ArrayList<PeerInterface>();
 		while(numNeighbors < 2){
          	try {
          		if (numNeighbors == 0) {
@@ -86,8 +140,8 @@ public class Peer implements Peer_interface{
          			portNumber = portNumber2;
          		}
          		Registry registry = LocateRegistry.getRegistry(portNumber);
-//				Peer_interface 
-				stubs.add((Peer_interface) registry.lookup("Peer_interface"));
+//				PeerInterface 
+				stubs.add((PeerInterface) registry.lookup("PeerInterface"));
 				numNeighbors++;
 			} catch (NotBoundException e) {
 //				e.printStackTrace();
@@ -98,9 +152,15 @@ public class Peer implements Peer_interface{
         peer.decision();
         if(peer.getBuyer() == 1){
         	System.out.println("I am buyer");
+        	while(true) {
+        		peer.setProduct(peer.chooseProduct());
+        		// code for buying
+        	}
         }
         else {
         	System.out.println("I am seller");
+        	peer.setProduct(peer.chooseProduct());
+        	peer.setStock(startStock);
         }
         stubs.get(0).printMsg();
         stubs.get(1).printMsg();
@@ -133,6 +193,12 @@ public class Peer implements Peer_interface{
 		Random rand = new Random();
 		int select = rand.nextInt(2);
 		this.buyer = select;
+	}
+	private int chooseProduct() {
+		// TODO Auto-generated method stub
+		Random rand = new Random();
+		int select = rand.nextInt(3);
+		return select;
 	}
 
 }
