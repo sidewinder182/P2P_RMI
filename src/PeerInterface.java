@@ -7,7 +7,8 @@ import java.net.*;
 
 public interface PeerInterface extends Remote{
 	public void printMsg() throws RemoteException;
-	public List<Integer> lookup(int productId,int hopcount) throws RemoteException;
+	public int getNodeId() throws RemoteException;
+	public List<Integer> lookup(int nodeId,int productId,int hopcount) throws RemoteException, NotReadyException;
 	public boolean buy(int nodeId,int productId) throws RemoteException;
 	// public String deposit(String acc_no,double amt) throws RemoteException;
 	// public String withdraw(String acc_no,double amt) throws RemoteException;
