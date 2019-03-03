@@ -1,8 +1,6 @@
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.rmi.NotBoundException;
@@ -47,6 +45,7 @@ public class Peer implements PeerInterface{
 	}
 	
 
+	
 	private void addNeighbor(PeerInterface stub) {
 		neighborStubs.add(stub);
 		try {
@@ -166,31 +165,62 @@ public class Peer implements PeerInterface{
 	private int reply() {
 		return nodeId;
 	}
-
-	public static void main(String[] args) throws IOException {
-		int startStock = 5;
-		int hopcount = 2;
-		Peer peer = new Peer();
-		
+	
+	public Peer(Properties prop)
+	{
+		this.startStock = Integer.parseInt(prop.getProperty("Stock"));
 		Hashtable<Integer,String> productNames = new Hashtable<Integer,String>();
 		productNames.put(1, "Fish");
 		productNames.put(2, "Salt");
 		productNames.put(3, "Boar");
-		peer.setProductNames(productNames);
+		setProductNames(productNames);
 		
-		Hashtable<Integer,String> h = new Hashtable<Integer,String>();
+	}
+
+	public static void main(String[] args) throws IOException {
+		Properties prop = new Properties();
+		InputStream input = null;
+		input = new FileInputStream("config.properties");
+		prop.load(input);
+//		int startStock = 5;
+		
+		Peer peer = new Peer(prop);
+		int hopcount = Integer.parseInt(prop.getProperty("hop", "2"));	
+//		Hashtable<Integer,String> productNames = new Hashtable<Integer,String>();
+//		productNames.put(1, "Fish");
+//		productNames.put(2, "Salt");
+//		productNames.put(3, "Boar");
+//		peer.setProductNames(productNames);
+		
+//		Hashtable<Integer,String> h = new Hashtable<Integer,String>();
 		// Hashtable for neighbor ips and ports
-		h.put(1,"localhost:8911");
-		h.put(2,"localhost:8912");
-		h.put(3,"localhost:8913");
-		peer.setNeighborInfo(h);
-		
-		peer.setNodeId(Integer.parseInt(args[0]));
+//		h.put(1,"localhost:8911");
+//		h.put(2,"localhost:8912");
+//		h.put(3,"localhost:8913");
+//		peer.setNeighborInfo(h);
+		int nodeId = Integer.parseInt(args[0]);
+		int numNodes = Integer.parseInt(prop.getProperty("N"));
+		peer.setNodeId(nodeId);
 		int portNumber;
-		int portNumber1 = Integer.parseInt(args[3]);
-		int portNumber2 = Integer.parseInt(args[4]);
-		int numNodes = Integer.parseInt(args[1]);
-		int myPortNumber = Integer.parseInt(args[2]);
+		String ip;
+		String portNumber1, portNumber2;
+		if(nodeId == 1)
+		{
+			portNumber1 = prop.getProperty(Integer.toString(nodeId + 1));
+			portNumber2 = prop.getProperty(Integer.toString(numNodes));
+		}
+		else if(nodeId == numNodes)
+		{
+			portNumber1 = prop.getProperty(Integer.toString(nodeId-1));
+			portNumber2 = prop.getProperty(Integer.toString(1));
+		}
+		else
+		{
+			portNumber1 = prop.getProperty(Integer.toString(nodeId-1));
+			portNumber2 = prop.getProperty(Integer.toString(nodeId+1));
+		}
+//		int numNodes = Integer.parseInt(args[1]);
+		int myPortNumber = Integer.parseInt(prop.getProperty(Integer.toString(nodeId)).split(":")[1]);
 		int numNeighbors = 0;
 		
 		try {
@@ -207,12 +237,14 @@ public class Peer implements PeerInterface{
 		while(numNeighbors < 2){
          	try {
          		if (numNeighbors == 0) {
-         			portNumber = portNumber1;
+         			portNumber = Integer.parseInt(portNumber1.split(":")[1]);
+         			ip = portNumber1.split(":")[0];
          		}
          		else {
-         			portNumber = portNumber2;
+         			portNumber = Integer.parseInt(portNumber2.split(":")[1]);
+         			ip = portNumber2.split(":")[0];
          		}
-         		Registry registry = LocateRegistry.getRegistry(portNumber);
+         		Registry registry = LocateRegistry.getRegistry(ip, portNumber);
          		peer.addNeighbor((PeerInterface) registry.lookup("PeerInterface"));
 				numNeighbors++;
 			} catch (NotBoundException e) {
@@ -237,7 +269,7 @@ public class Peer implements PeerInterface{
 		
         if(peer.getBuyer() == 0) {
         	peer.setProduct(peer.chooseProduct());
-        	peer.setStartStock(startStock);
+//        	peer.setStartStock(peer.getStartStock());
         	peer.setStock(peer.getStartStock());
         }
         else{
@@ -255,7 +287,7 @@ public class Peer implements PeerInterface{
 		        		if(!replies.isEmpty()) {
 		        			int idx = peer.getRandomNumber(replies.size());
 		        			int chosenSellerId = replies.get(idx);
-		        			String[] tokens = peer.neighborInfo.get(chosenSellerId).split(":");
+		        			String[] tokens = prop.getProperty(Integer.toString(chosenSellerId)).split(":");
 		        			Registry registry = LocateRegistry.getRegistry(tokens[0],Integer.parseInt(tokens[1]));
 		        			try {
 								PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
