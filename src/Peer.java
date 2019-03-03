@@ -96,7 +96,7 @@ public class Peer implements PeerInterface{
 	}
 	
 	public List<Integer> lookup(int callingNodeId,int productId,int hopcount) throws NotReadyException {
-//		System.out.println("Lookup called by : " + callingNodeId + "\n");
+		System.out.println("Lookup called by : " + callingNodeId + "\n");
 		List<Integer> result = new ArrayList<Integer>();
 		if(buyer == -1) {
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
@@ -129,6 +129,8 @@ public class Peer implements PeerInterface{
 //					e1.printStackTrace();
 				} catch(NotReadyException e2) {
 //					e2.printStackTrace();
+				} catch(Exception e3) {
+					e3.printStackTrace();
 				}
 			}
 			if(buyer == 0 && productId == product) {
@@ -219,8 +221,9 @@ public class Peer implements PeerInterface{
 			portNumber1 = prop.getProperty(Integer.toString(nodeId-1));
 			portNumber2 = prop.getProperty(Integer.toString(nodeId+1));
 		}
-//		int numNodes = Integer.parseInt(args[1]);
 		int myPortNumber = Integer.parseInt(prop.getProperty(Integer.toString(nodeId)).split(":")[1]);
+		String myIP = prop.getProperty(Integer.toString(nodeId)).split(":")[0];
+		System.setProperty("java.rmi.server.hostname", myIP);
 		int numNeighbors = 0;
 		
 		try {
@@ -245,7 +248,8 @@ public class Peer implements PeerInterface{
          			ip = portNumber2.split(":")[0];
          		}
          		Registry registry = LocateRegistry.getRegistry(ip, portNumber);
-         		peer.addNeighbor((PeerInterface) registry.lookup("PeerInterface"));
+         		PeerInterface nStub = (PeerInterface) registry.lookup("PeerInterface");
+         		peer.addNeighbor(nStub);
 				numNeighbors++;
 			} catch (NotBoundException e) {
 //				e.printStackTrace();
