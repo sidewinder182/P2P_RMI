@@ -96,7 +96,7 @@ public class Peer implements PeerInterface{
 	}
 	
 	public List<Integer> lookup(int callingNodeId,int productId,int hopcount) throws NotReadyException {
-		System.out.println("Lookup called by : " + callingNodeId + "\n");
+//		System.out.println("Lookup called by : " + callingNodeId + "\n");
 		List<Integer> result = new ArrayList<Integer>();
 		if(buyer == -1) {
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
@@ -142,7 +142,7 @@ public class Peer implements PeerInterface{
 		}
 	}
 	
-	public boolean buy(int nodeId,int productId) {
+	public synchronized boolean buy(int nodeId,int productId) {
 		System.out.println("Received a buy request for " + productNames.get(productId + 1) + " from " + nodeId);
 		if(this.buyer != 0) {
 			System.out.println("Sorry. I am not a seller\n");
@@ -271,50 +271,57 @@ public class Peer implements PeerInterface{
         peer.decision();
 		
 		
-        if(peer.getBuyer() == 0) {
+        if(peer.getBuyer() == 0) { // Seller
         	peer.setProduct(peer.chooseProduct());
 //        	peer.setStartStock(peer.getStartStock());
         	peer.setStock(peer.getStartStock());
         }
-        else{
+        else{ // Buyer
         	List<Integer> replies;
         	while(true) {
-        		peer.setProduct(peer.chooseProduct());
         		boolean bought = false;
         		while(bought == false) {
+        			peer.setProduct(peer.chooseProduct());
         			try {
 						replies = peer.lookup(peer.getNodeId(),peer.getProduct(), hopcount);
 						replies = peer.getUniqueElements(replies);
 						for(int i = 0;i < replies.size();i++) {
 	        				System.out.println("Got reply from nodeID : " + replies.get(i));
 	        			}
-		        		if(!replies.isEmpty()) {
+		        		while(!replies.isEmpty()) {
 		        			int idx = peer.getRandomNumber(replies.size());
 		        			int chosenSellerId = replies.get(idx);
 		        			String[] tokens = prop.getProperty(Integer.toString(chosenSellerId)).split(":");
 		        			Registry registry = LocateRegistry.getRegistry(tokens[0],Integer.parseInt(tokens[1]));
 		        			try {
-								PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
+		        				System.out.println("Buying from " + chosenSellerId);
+		        				PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
 								bought = tempStub.buy(peer.getNodeId(),peer.getProduct());
-								System.out.println("Buying from " + chosenSellerId + "\n");
-								System.out.println(bought);
-								replies.remove(idx);
+								if(bought) {
+									System.out.println("Succeeded\n");
+									break;
+								}
+								else {
+									System.out.println("Failed. Trying again\n");
+								}
 							} catch (NotBoundException e) {
 								e.printStackTrace();
 							} catch(Exception e) {
 								e.printStackTrace();
 							}
+		        			replies.remove(idx);
 		        		}
-//		        		else {
-//		        			System.out.println("No replies");
-//		        		}
 					} catch (NotReadyException e1) {
 						e1.printStackTrace();
 					}
-        			
+        			if(!bought) {
+	        			System.out.println("No sellers available. Choosing product again\n");
+	        		}
         		}
         		try {
-					TimeUnit.SECONDS.sleep(5);
+        			int waitTime = peer.getRandomNumber(10);
+        			System.out.println("Waiting for " + (waitTime+1) + " seconds\n");
+					TimeUnit.SECONDS.sleep(waitTime);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -322,7 +329,7 @@ public class Peer implements PeerInterface{
         }
 
 	}
-	private int getRandomNumber(int max) {
+	public int getRandomNumber(int max) {
 		Random rand = new Random();
 		return rand.nextInt(max);
 	}
@@ -340,7 +347,7 @@ public class Peer implements PeerInterface{
 	private int chooseProduct() {
 		// TODO Auto-generated method stub
 		Random rand = new Random();
-		int select = rand.nextInt(1);
+		int select = rand.nextInt(3);
 		System.out.println("Product chosen : " + productNames.get(select+1) + "\n");
 		return select;
 	}
