@@ -2,8 +2,6 @@ hopcount
 N
 starting stock
 
-randomize product
-randomize wait
 write code for measuring latency
 write test cases
 design doc
