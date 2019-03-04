@@ -8,9 +8,8 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-//import org.json.simple.JSONArray; 
-//import org.json.simple.JSONObject;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.concurrent.TimeUnit;
 
 public class Peer implements PeerInterface{
 	private int buyer = -1;
@@ -26,6 +25,7 @@ public class Peer implements PeerInterface{
 	public Hashtable<Integer, String> getProductNames() {
 		return productNames;
 	}
+	
 	public void setProductNames(Hashtable<Integer, String> productNames) {
 		this.productNames = productNames;
 	}
@@ -44,9 +44,8 @@ public class Peer implements PeerInterface{
 		this.neighborInfo = neighborInfo;
 	}
 	
-
-	
 	private void addNeighbor(PeerInterface stub) {
+		// Adds neighbor reference to list of neighbors
 		neighborStubs.add(stub);
 		try {
 			System.out.println("Added neighbor " + stub.getNodeId());
@@ -54,6 +53,7 @@ public class Peer implements PeerInterface{
 			e.printStackTrace();
 		}
 	}
+	
 	public int getBuyer() {
 		return buyer;
 	}
@@ -184,47 +184,37 @@ public class Peer implements PeerInterface{
 		InputStream input = null;
 		input = new FileInputStream("config.properties");
 		prop.load(input);
-//		int startStock = 5;
 		
+		// Checking system configuration
 		Peer peer = new Peer(prop);
 		int hopcount = Integer.parseInt(prop.getProperty("hop", "2"));	
-//		Hashtable<Integer,String> productNames = new Hashtable<Integer,String>();
-//		productNames.put(1, "Fish");
-//		productNames.put(2, "Salt");
-//		productNames.put(3, "Boar");
-//		peer.setProductNames(productNames);
-		
-//		Hashtable<Integer,String> h = new Hashtable<Integer,String>();
-		// Hashtable for neighbor ips and ports
-//		h.put(1,"localhost:8911");
-//		h.put(2,"localhost:8912");
-//		h.put(3,"localhost:8913");
-//		peer.setNeighborInfo(h);
 		int nodeId = Integer.parseInt(args[0]);
 		int numNodes = Integer.parseInt(prop.getProperty("N"));
+		
+		if(peer.getStartStock() <= 0) {
+			System.out.println("Starting stock for a peer should be > 0. Please check config file\n");
+			System.exit(0);
+		}
+		if(numNodes <= 0) {
+			System.out.println("Number of nodes in the network cannot be less than 1. Please check config file\n");
+			System.exit(0);
+		}
+		if(hopcount <= 0) {
+			System.out.println("Hopcount should be > 0. Please check config file\n");
+			System.exit(0);
+		}
+		if(nodeId <= 0 || nodeId > numNodes) {
+			System.out.println("Invalid peer ID. Peer ID should be an integer in the interval [1,N]\n");
+			System.exit(0);
+		}
 		peer.setNodeId(nodeId);
-		int portNumber;
-		String ip;
-		String portNumber1, portNumber2;
-		if(nodeId == 1)
-		{
-			portNumber1 = prop.getProperty(Integer.toString(nodeId + 1));
-			portNumber2 = prop.getProperty(Integer.toString(numNodes));
-		}
-		else if(nodeId == numNodes)
-		{
-			portNumber1 = prop.getProperty(Integer.toString(nodeId-1));
-			portNumber2 = prop.getProperty(Integer.toString(1));
-		}
-		else
-		{
-			portNumber1 = prop.getProperty(Integer.toString(nodeId-1));
-			portNumber2 = prop.getProperty(Integer.toString(nodeId+1));
-		}
+		
+		
+		// Binding itself to registry on specified port and ip in the config file
 		int myPortNumber = Integer.parseInt(prop.getProperty(Integer.toString(nodeId)).split(":")[1]);
 		String myIP = prop.getProperty(Integer.toString(nodeId)).split(":")[0];
 		System.setProperty("java.rmi.server.hostname", myIP);
-		int numNeighbors = 0;
+
 		
 		try {
             PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(peer, 0);
@@ -236,6 +226,30 @@ public class Peer implements PeerInterface{
             e.printStackTrace();
         }
         
+		
+		// Establishing connections with neighbors according to a ring topology.
+		int numNeighbors = 0;
+		int portNumber;
+		String ip="";
+		String portNumber1="", portNumber2="";
+		if(nodeId == 1)
+		{
+			// If nodeId 1, connect to node 2 and node N
+			portNumber1 = prop.getProperty(Integer.toString(nodeId + 1));
+			portNumber2 = prop.getProperty(Integer.toString(numNodes));
+		}
+		else if(nodeId == numNodes)
+		{
+			// If nodeId N, connect to node N-1 and node 1
+			portNumber1 = prop.getProperty(Integer.toString(nodeId-1));
+			portNumber2 = prop.getProperty(Integer.toString(1));
+		}
+		else
+		{
+			// If nodeId between 1 and N, connect to node (nodeId-1) and (nodeId+1)
+			portNumber1 = prop.getProperty(Integer.toString(nodeId-1));
+			portNumber2 = prop.getProperty(Integer.toString(nodeId+1));
+		}
 		
 		while(numNeighbors < 2){
          	try {
@@ -254,36 +268,52 @@ public class Peer implements PeerInterface{
 			} catch (NotBoundException e) {
 //				e.printStackTrace();
 			} catch(RemoteException re){
+				System.out.println("Neighbor peer not up yet");
 //				re.printStackTrace();
 			}
         }
 		
 		
+		/* Randomly choosing buyer or seller role*/
+		
 //		if(peer.getNodeId() == 1) {
-//			peer.setBuyer(0);
+//			peer.setBuyer(1);
 //		}
 //		else if(peer.getNodeId() == 2) {
 //			peer.setBuyer(0);
 //		}
 //		else{
-//			peer.setBuyer(1);
+//			peer.setBuyer(0);
 //		}
         peer.decision();
 		
 		
-        if(peer.getBuyer() == 0) { // Seller
+        if(peer.getBuyer() == 0) { 
+        	// Code for Seller
         	peer.setProduct(peer.chooseProduct());
-//        	peer.setStartStock(peer.getStartStock());
         	peer.setStock(peer.getStartStock());
         }
-        else{ // Buyer
+        else{ 
+        	// Code for Buyer
         	List<Integer> replies;
+        	int numRequests = 0;
+        	double totalTimeElapsed = 0;
         	while(true) {
         		boolean bought = false;
         		while(bought == false) {
         			peer.setProduct(peer.chooseProduct());
         			try {
+//        				long startTime = System.nanoTime();
 						replies = peer.lookup(peer.getNodeId(),peer.getProduct(), hopcount);
+//						long endTime = System.nanoTime();
+//						double timeElapsed = ((double)endTime - (double)startTime)/1000000;
+//						totalTimeElapsed += timeElapsed;
+//						numRequests++;
+//						if(numRequests == 1000) {
+//							System.out.println("Average time for 1000 search requests : " + totalTimeElapsed/1000 + " #############################################");
+//							totalTimeElapsed = 0;
+//							numRequests = 0;
+//						}
 						replies = peer.getUniqueElements(replies);
 						for(int i = 0;i < replies.size();i++) {
 	        				System.out.println("Got reply from nodeID : " + replies.get(i));
@@ -318,6 +348,8 @@ public class Peer implements PeerInterface{
 	        			System.out.println("No sellers available. Choosing product again\n");
 	        		}
         		}
+        		
+        		// Waiting for a random number of seconds between 1 and 10
         		try {
         			int waitTime = peer.getRandomNumber(10);
         			System.out.println("Waiting for " + (waitTime+1) + " seconds\n");
@@ -329,12 +361,15 @@ public class Peer implements PeerInterface{
         }
 
 	}
+	
 	public int getRandomNumber(int max) {
+		// Return a random number from [0,max - 1]
 		Random rand = new Random();
 		return rand.nextInt(max);
 	}
+	
 	private void decision() {
-		// TODO Auto-generated method stub
+		// Randomly assigns a buyer or seller role to peer.
 		Random rand = new Random();
 		buyer = rand.nextInt(2);
 		if(buyer == 0) {
@@ -345,7 +380,7 @@ public class Peer implements PeerInterface{
 		}
 	}
 	private int chooseProduct() {
-		// TODO Auto-generated method stub
+		// Randomly chooses a product out of fish, salt or boar.
 		Random rand = new Random();
 		int select = rand.nextInt(3);
 		System.out.println("Product chosen : " + productNames.get(select+1) + "\n");
@@ -353,6 +388,7 @@ public class Peer implements PeerInterface{
 	}
 	
 	private List<Integer> getUniqueElements(List<Integer> inputList){
+		// Gets unique integers from a list
 		Set<Integer> s = new HashSet<Integer>(inputList);
 		return new ArrayList<Integer>(s);
 	}
