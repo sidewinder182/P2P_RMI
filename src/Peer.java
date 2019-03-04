@@ -98,6 +98,10 @@ public class Peer implements PeerInterface{
 	public List<Integer> lookup(int callingNodeId,int productId,int hopcount) throws NotReadyException {
 //		System.out.println("Lookup called by : " + callingNodeId + "\n");
 		List<Integer> result = new ArrayList<Integer>();
+		if(this.getNodeId() == callingNodeId)
+		{
+			System.out.println("lookup called by " + callingNodeId + System.currentTimeMillis());
+		}
 		if(buyer == -1) {
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
 		}
@@ -154,7 +158,7 @@ public class Peer implements PeerInterface{
 		}
 		if(this.stock > 0) {
 			this.stock -= 1;
-			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\n");
+			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\n" + "TimeStamp: " + System.currentTimeMillis());
 			if(this.stock == 0) {
 				this.restock();
 			}
@@ -260,13 +264,13 @@ public class Peer implements PeerInterface{
 		
 		
 //		if(peer.getNodeId() == 1) {
-//			peer.setBuyer(0);
+//			peer.setBuyer(1);
 //		}
 //		else if(peer.getNodeId() == 2) {
 //			peer.setBuyer(0);
 //		}
 //		else{
-//			peer.setBuyer(1);
+//			peer.setBuyer(0);
 //		}
         peer.decision();
 		
@@ -298,7 +302,7 @@ public class Peer implements PeerInterface{
 		        				PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
 								bought = tempStub.buy(peer.getNodeId(),peer.getProduct());
 								if(bought) {
-									System.out.println("Succeeded\n");
+									System.out.println("Succeeded buying from " + chosenSellerId + System.currentTimeMillis());
 									break;
 								}
 								else {
