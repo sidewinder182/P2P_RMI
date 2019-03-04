@@ -96,7 +96,7 @@ public class Peer implements PeerInterface{
 	}
 	
 	public List<Integer> lookup(int callingNodeId,int productId,int hopcount) throws NotReadyException {
-		System.out.println("Lookup called by : " + callingNodeId + "\n");
+//		System.out.println("Lookup called by : " + callingNodeId + "\n");
 		List<Integer> result = new ArrayList<Integer>();
 		if(buyer == -1) {
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
