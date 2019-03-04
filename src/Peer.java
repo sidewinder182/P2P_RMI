@@ -3,13 +3,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import com.sun.jmx.snmp.Timestamp;
 import java.rmi.NotBoundException;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.concurrent.TimeUnit;
 
 public class Peer implements PeerInterface{
 	private int buyer = -1;
@@ -100,7 +99,7 @@ public class Peer implements PeerInterface{
 		List<Integer> result = new ArrayList<Integer>();
 		if(this.getNodeId() == callingNodeId)
 		{
-			System.out.println("lookup called by " + callingNodeId + System.currentTimeMillis());
+			System.out.println("lookup called by " + callingNodeId + " at " + new Timestamp(System.currentTimeMillis()));
 		}
 		if(buyer == -1) {
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
@@ -158,7 +157,7 @@ public class Peer implements PeerInterface{
 		}
 		if(this.stock > 0) {
 			this.stock -= 1;
-			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\n" + "TimeStamp: " + System.currentTimeMillis());
+			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\t" + "TimeStamp: " + new Timestamp(System.currentTimeMillis()));
 			if(this.stock == 0) {
 				this.restock();
 			}
@@ -166,10 +165,6 @@ public class Peer implements PeerInterface{
 		}
 		System.out.println("Sorry. Not enough stock\n");
 		return false;
-	}
-	
-	private int reply() {
-		return nodeId;
 	}
 	
 	public Peer(Properties prop)
@@ -272,14 +267,15 @@ public class Peer implements PeerInterface{
 			} catch (NotBoundException e) {
 //				e.printStackTrace();
 			} catch(RemoteException re){
-				System.out.println("Neighbor peer not up yet");
+//				System.out.println("Neighbor peer not up yet");
 //				re.printStackTrace();
 			}
         }
 		
 		
 		/* Randomly choosing buyer or seller role*/
-		
+//		peer.setBuyer(0);
+//		System.out.println("I am a seller");
 //		if(peer.getNodeId() == 1) {
 //			peer.setBuyer(1);
 //		}
@@ -292,6 +288,7 @@ public class Peer implements PeerInterface{
         peer.decision();
 		
 		
+		
         if(peer.getBuyer() == 0) { 
         	// Code for Seller
         	peer.setProduct(peer.chooseProduct());
@@ -300,8 +297,8 @@ public class Peer implements PeerInterface{
         else{ 
         	// Code for Buyer
         	List<Integer> replies;
-        	int numRequests = 0;
-        	double totalTimeElapsed = 0;
+//        	int numRequests = 0;
+//        	double totalTimeElapsed = 0;
         	while(true) {
         		boolean bought = false;
         		while(bought == false) {
@@ -332,7 +329,7 @@ public class Peer implements PeerInterface{
 		        				PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
 								bought = tempStub.buy(peer.getNodeId(),peer.getProduct());
 								if(bought) {
-									System.out.println("Succeeded buying from " + chosenSellerId + System.currentTimeMillis());
+									System.out.println("Succeeded buying from " + chosenSellerId + "\t TimeStamp = " + new Timestamp(System.currentTimeMillis()));
 									break;
 								}
 								else {

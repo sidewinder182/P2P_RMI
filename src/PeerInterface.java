@@ -1,9 +1,9 @@
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.io.*;
-import java.text.*;
+//import java.io.*;
+//import java.text.*;
 import java.util.*;
-import java.net.*;
+//import java.net.*;
 
 public interface PeerInterface extends Remote{
 	public void printMsg() throws RemoteException;
