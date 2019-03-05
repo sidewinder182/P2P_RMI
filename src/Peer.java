@@ -102,28 +102,34 @@ public class Peer implements PeerInterface{
 			System.out.println("lookup called by " + callingNodeId + " at " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 		if(buyer == -1) {
+			// If this peer hasn't assumed a role yet, throw an exception
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
 		}
 		if(hopcount == 0) {
+			// If no more hops are left, then don't do lookups on neighbors
 			if(buyer == 1) {
+				// If current node is a buyer, then just return without adding own Id to the list
 				return result;
 			}
 			else {
 				if(productId == product) {
+					// If current node is a seller and sells the requested product, add own Id to list and return it
 					if(!result.contains(nodeId)) {
 						result.add(nodeId);
 					}
 					return result;
 				}
 				else {
+					// If current node is not selling requested product, then just return without adding own Id to the list
 					return result;
 				}
 			}
 		}
 		else {
+			// If more hops left, first do lookup on neighbor
 			for(int i = 0;i < neighbors;i++) {
 				try {
-					if(neighborStubs.get(i).getNodeId() != callingNodeId) {
+					if(neighborStubs.get(i).getNodeId() != callingNodeId) { // Only do lookup on the other neighbor which didn't call lookup on you
 						result.addAll(neighborStubs.get(i).lookup(nodeId,productId,hopcount-1));
 					}
 				} catch (RemoteException e) {
@@ -137,6 +143,7 @@ public class Peer implements PeerInterface{
 				}
 			}
 			if(buyer == 0 && productId == product) {
+				// If current node is a seller and sells the requested product, add own Id to the list returned by neighbor's lookup
 				if(!result.contains(nodeId)) {
 					result.add(nodeId);
 				}
@@ -148,17 +155,21 @@ public class Peer implements PeerInterface{
 	public synchronized boolean buy(int nodeId,int productId) {
 		System.out.println("Received a buy request for " + productNames.get(productId + 1) + " from " + nodeId);
 		if(this.buyer != 0) {
+			// Checking if current node is a buyer
 			System.out.println("Sorry. I am not a seller\n");
 			return false;
 		}
 		if(productId != product) {
+			// Checking if current node is selling the requested product
 			System.out.println("Sorry. Wrong product\n");
 			return false;
 		}
 		if(this.stock > 0) {
+			// Checking if there is enough stock
 			this.stock -= 1;
 			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\t" + "TimeStamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
 			if(this.stock == 0) {
+				// If stock is over now, choose new product and re-stock
 				this.restock();
 			}
 			return true;
@@ -288,10 +299,10 @@ public class Peer implements PeerInterface{
         	List<Integer> replies;
 //        	int numRequests = 0;
 //        	double totalTimeElapsed = 0;
-        	while(true) {
+        	while(true) { // Keep buying for all eternity
         		boolean bought = false;
-        		while(bought == false) {
-        			peer.setProduct(peer.chooseProduct());
+        		while(bought == false) { // Keep trying to buy till a successfull buy happens, then wait for random amount of time
+        			peer.setProduct(peer.chooseProduct()); // Randomly choose a product to buy
         			try {
 //        				long startTime = System.nanoTime();
 						replies = peer.lookup(peer.getNodeId(),peer.getProduct(), hopcount);
@@ -304,11 +315,14 @@ public class Peer implements PeerInterface{
 //							totalTimeElapsed = 0;
 //							numRequests = 0;
 //						}
-						replies = peer.getUniqueElements(replies);
+						replies = peer.getUniqueElements(replies); // There can be duplicate entries in the returned list, only get the unique ones from it
 						for(int i = 0;i < replies.size();i++) {
 	        				System.out.println("Got reply from nodeID : " + replies.get(i));
 	        			}
 		        		while(!replies.isEmpty()) {
+		        			// Randomly choose a buyer and try to buy from it.
+		        			// If fails, remove it from the list and try to buy from another randomly chosen buyer.
+		        			// Keep doing this till a buy is successful, or list of replies is exhausted
 		        			int idx = peer.getRandomNumber(replies.size());
 		        			int chosenSellerId = replies.get(idx);
 		        			String[] tokens = prop.getProperty(Integer.toString(chosenSellerId)).split(":");
@@ -318,7 +332,7 @@ public class Peer implements PeerInterface{
 		        				PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
 								bought = tempStub.buy(peer.getNodeId(),peer.getProduct());
 								if(bought) {
-									System.out.println("Succeeded buying from " + chosenSellerId + "\t TimeStamp = " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
+									System.out.println("Succeeded buying from " + chosenSellerId + "\t TimeStamp = " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()) + "\n");
 									break;
 								}
 								else {
