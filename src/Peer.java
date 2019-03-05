@@ -100,7 +100,7 @@ public class Peer implements PeerInterface{
 		List<Integer> result = new ArrayList<Integer>();
 		if(this.getNodeId() == callingNodeId)
 		{
-			System.out.println("lookup called by " + callingNodeId + " at " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
+			System.out.println("lookup called by " + callingNodeId + " at " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 		if(buyer == -1) {
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
@@ -158,7 +158,7 @@ public class Peer implements PeerInterface{
 		}
 		if(this.stock > 0) {
 			this.stock -= 1;
-			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\t" + "TimeStamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
+			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\t" + "TimeStamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
 			if(this.stock == 0) {
 				this.restock();
 			}
@@ -330,7 +330,7 @@ public class Peer implements PeerInterface{
 		        				PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
 								bought = tempStub.buy(peer.getNodeId(),peer.getProduct());
 								if(bought) {
-									System.out.println("Succeeded buying from " + chosenSellerId + "\t TimeStamp = " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
+									System.out.println("Succeeded buying from " + chosenSellerId + "\t TimeStamp = " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
 									break;
 								}
 								else {
