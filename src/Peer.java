@@ -3,7 +3,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-//import com.sun.jmx.snmp.Timestamp;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -175,7 +174,7 @@ public class Peer implements PeerInterface{
 		productNames.put(1, "Fish");
 		productNames.put(2, "Salt");
 		productNames.put(3, "Boar");
-		setProductNames(productNames);
+		setProductNames(productNames); //mapping product ids to their product names
 		
 	}
 
@@ -195,8 +194,8 @@ public class Peer implements PeerInterface{
 			System.out.println("Starting stock for a peer should be > 0. Please check config file\n");
 			System.exit(0);
 		}
-		if(numNodes <= 0) {
-			System.out.println("Number of nodes in the network cannot be less than 1. Please check config file\n");
+		if(numNodes <= 2) {
+			System.out.println("Number of nodes in the network cannot be less than 3. Please check config file\n");
 			System.exit(0);
 		}
 		if(hopcount <= 0) {
@@ -275,17 +274,6 @@ public class Peer implements PeerInterface{
 		
 		
 		/* Randomly choosing buyer or seller role*/
-//		peer.setBuyer(0);
-//		System.out.println("I am a seller");
-//		if(peer.getNodeId() == 1) {
-//			peer.setBuyer(1);
-//		}
-//		else if(peer.getNodeId() == 2) {
-//			peer.setBuyer(0);
-//		}
-//		else{
-//			peer.setBuyer(0);
-//		}
         peer.decision();
 		
 		
@@ -296,7 +284,7 @@ public class Peer implements PeerInterface{
         	peer.setStock(peer.getStartStock());
         }
         else{ 
-        	// Code for Buyer
+        	// Code for Buyer		Commented out code for performance evaluation
         	List<Integer> replies;
 //        	int numRequests = 0;
 //        	double totalTimeElapsed = 0;
