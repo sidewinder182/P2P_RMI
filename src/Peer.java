@@ -3,12 +3,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import com.sun.jmx.snmp.Timestamp;
+//import com.sun.jmx.snmp.Timestamp;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.text.SimpleDateFormat;
 
 public class Peer implements PeerInterface{
 	private int buyer = -1;
@@ -99,7 +100,7 @@ public class Peer implements PeerInterface{
 		List<Integer> result = new ArrayList<Integer>();
 		if(this.getNodeId() == callingNodeId)
 		{
-			System.out.println("lookup called by " + callingNodeId + " at " + new Timestamp(System.currentTimeMillis()));
+			System.out.println("lookup called by " + callingNodeId + " at " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 		}
 		if(buyer == -1) {
 			throw new NotReadyException("Node " + nodeId + " is not yet ready");
@@ -157,7 +158,7 @@ public class Peer implements PeerInterface{
 		}
 		if(this.stock > 0) {
 			this.stock -= 1;
-			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\t" + "TimeStamp: " + new Timestamp(System.currentTimeMillis()));
+			System.out.println("Sold item " + this.productNames.get(this.product+1) + " to node " + Integer.toString(nodeId) + "\nRemaining stock : " + this.stock + "\t" + "TimeStamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 			if(this.stock == 0) {
 				this.restock();
 			}
@@ -329,7 +330,7 @@ public class Peer implements PeerInterface{
 		        				PeerInterface tempStub = (PeerInterface) registry.lookup("PeerInterface");
 								bought = tempStub.buy(peer.getNodeId(),peer.getProduct());
 								if(bought) {
-									System.out.println("Succeeded buying from " + chosenSellerId + "\t TimeStamp = " + new Timestamp(System.currentTimeMillis()));
+									System.out.println("Succeeded buying from " + chosenSellerId + "\t TimeStamp = " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 									break;
 								}
 								else {
